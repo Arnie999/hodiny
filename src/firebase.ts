@@ -1,6 +1,13 @@
 import { initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
-import { getAuth, GoogleAuthProvider } from 'firebase/auth'
+import {
+  initializeAuth,
+  indexedDBLocalPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  browserPopupRedirectResolver,
+  GoogleAuthProvider,
+} from 'firebase/auth'
 
 const firebaseConfig = {
   apiKey: "AIzaSyDPKqjbkTBUa5bPps2mjUf3dkQaPbzVmbo",
@@ -13,5 +20,18 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig)
 export const db = getFirestore(app)
-export const auth = getAuth(app)
+
+// Fallback řetězec persistence: na iOS Safari může IndexedDB selhat
+// (přidání na plochu, omezené úložiště), proto necháváme SDK sáhnout
+// po localStorage, případně sessionStorage.
+export const auth = initializeAuth(app, {
+  persistence: [
+    indexedDBLocalPersistence,
+    browserLocalPersistence,
+    browserSessionPersistence,
+  ],
+  popupRedirectResolver: browserPopupRedirectResolver,
+})
+
 export const googleProvider = new GoogleAuthProvider()
+googleProvider.setCustomParameters({ prompt: 'select_account' })
