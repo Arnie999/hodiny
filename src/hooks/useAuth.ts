@@ -11,8 +11,6 @@ import {
 } from 'firebase/auth'
 import { auth, googleProvider } from '../firebase'
 
-const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -64,13 +62,29 @@ export function useAuth() {
     setIsSigningIn(true)
     setError(null)
     try {
-      if (isMobile) {
-        await signInWithRedirect(auth, googleProvider)
-      } else {
-        await signInWithPopup(auth, googleProvider)
-      }
+      // Popup funguje spolehlivě i na iOS Safari, kde redirect kvůli ITP
+      // ztrácí session a vrací uživatele zpět na login.
+      await signInWithPopup(auth, googleProvider)
     } catch (err) {
-      setError(err as Error)
+      const code = (err as { code?: string }).code
+
+      // Uživatel zavřel/zrušil okno – žádná chyba, jen ukončíme.
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+        setIsSigningIn(false)
+        return
+      }
+
+      // Popup zablokován nebo nepodporován → zkusíme redirect jako záložní.
+      if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+        try {
+          await signInWithRedirect(auth, googleProvider)
+          return
+        } catch (redirectErr) {
+          setError(redirectErr as Error)
+        }
+      } else {
+        setError(err as Error)
+      }
       setIsSigningIn(false)
     }
   }, [])
