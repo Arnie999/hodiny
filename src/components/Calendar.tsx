@@ -1,8 +1,8 @@
 import { format, eachDayOfInterval, startOfMonth, endOfMonth, getDay } from 'date-fns'
 import { cs } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Wine } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Coins, Star, Wine } from 'lucide-react'
 import type { WorkDay } from '../types'
-import { calculateWorkDay, calculateMonthSummary, formatMinutes, isSunday, isToday } from '../utils'
+import { calculateWorkDay, calculateMonthSummary, formatCurrency, formatMinutes, isSunday, isToday } from '../utils'
 
 interface Props {
   currentMonth: Date
@@ -62,7 +62,7 @@ export function Calendar({ currentMonth, workDays, onDateSelect, onPreviousMonth
 
       <div className="grid grid-cols-7 gap-1 sm:gap-2">
         {Array.from({ length: offset }).map((_, i) => (
-          <div key={`offset-${i}`} className="aspect-square" />
+          <div key={`offset-${i}`} className="min-h-20 sm:aspect-square" />
         ))}
         {days.map((day) => {
           const wd = findWorkDay(day)
@@ -72,19 +72,23 @@ export function Calendar({ currentMonth, workDays, onDateSelect, onPreviousMonth
           const hasWork = summary && summary.totalWorkMinutes > 0
           const complete = summary?.isComplete ?? false
           const drinks = summary?.drinkCount ?? 0
+          const reviews = summary?.reviewCount ?? 0
+          const tips = summary?.tipAmount ?? 0
+          const hasBusinessMetrics = drinks > 0 || reviews > 0 || tips > 0
 
           return (
             <button
               key={day.toISOString()}
               onClick={() => onDateSelect?.(day)}
               className={`
-                aspect-square rounded-xl p-1 sm:p-2 text-xs sm:text-sm font-medium
+                min-h-20 sm:aspect-square rounded-xl p-1 sm:p-2 text-xs sm:text-sm font-medium
                 transition-all hover:scale-105 cursor-pointer
                 ${today ? 'ring-2 ring-blue-500 ring-offset-1' : ''}
                 ${sunday ? 'text-red-600 bg-red-50' : 'text-neutral-800'}
                 ${hasWork && complete ? 'bg-green-100 hover:bg-green-200' : ''}
                 ${hasWork && !complete ? 'bg-amber-100 hover:bg-amber-200' : ''}
-                ${!hasWork && !sunday ? 'bg-neutral-50 hover:bg-neutral-100' : ''}
+                ${!hasWork && !sunday && !hasBusinessMetrics ? 'bg-neutral-50 hover:bg-neutral-100' : ''}
+                ${!hasWork && !sunday && hasBusinessMetrics ? 'bg-violet-50 hover:bg-violet-100' : ''}
               `}
             >
               <div className="flex flex-col items-center justify-center h-full">
@@ -98,6 +102,21 @@ export function Calendar({ currentMonth, workDays, onDateSelect, onPreviousMonth
                   <span className="flex items-center gap-0.5 text-[10px] sm:text-xs mt-0.5 text-rose-600 font-semibold">
                     <Wine className="w-3 h-3" />
                     {drinks}
+                  </span>
+                )}
+                {reviews > 0 && (
+                  <span className="flex items-center gap-0.5 text-[10px] sm:text-xs mt-0.5 text-amber-600 font-semibold">
+                    <Star className="w-3 h-3" />
+                    {reviews}
+                  </span>
+                )}
+                {tips > 0 && (
+                  <span
+                    className="flex items-center gap-0.5 text-[10px] sm:text-xs mt-0.5 text-emerald-700 font-semibold"
+                    title={`Dýško: ${formatCurrency(tips)}`}
+                  >
+                    <Coins className="w-3 h-3" />
+                    {tips.toLocaleString('cs-CZ', { maximumFractionDigits: 2 })}
                   </span>
                 )}
               </div>
@@ -125,15 +144,31 @@ export function Calendar({ currentMonth, workDays, onDateSelect, onPreviousMonth
         </div>
         <div className="flex items-center gap-1 text-rose-600">
           <Wine className="w-3 h-3" />
-          <span>Maria drinky</span>
+          <span>Likéry Maria</span>
+        </div>
+        <div className="flex items-center gap-1 text-amber-600">
+          <Star className="w-3 h-3" />
+          <span>Recenze</span>
+        </div>
+        <div className="flex items-center gap-1 text-emerald-700">
+          <Coins className="w-3 h-3" />
+          <span>Dýško</span>
         </div>
       </div>
 
-      {monthSummary.totalDrinks > 0 && (
-        <div className="mt-4 flex justify-center">
-          <div className="flex items-center gap-2 px-4 py-2 bg-rose-50 rounded-xl text-rose-700 text-sm font-medium">
-            <Wine className="w-4 h-4" />
-            Maria drinky za měsíc: <span className="font-bold">{monthSummary.totalDrinks} ks</span>
+      {(monthSummary.totalDrinks > 0 || monthSummary.totalReviews > 0 || monthSummary.totalTips > 0) && (
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          <div className="flex items-center justify-center gap-2 px-4 py-2 bg-rose-50 rounded-xl text-rose-700 text-sm font-medium">
+            <Wine className="w-4 h-4 shrink-0" />
+            Likéry Maria: <span className="font-bold">{monthSummary.totalDrinks} ks</span>
+          </div>
+          <div className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-50 rounded-xl text-amber-700 text-sm font-medium">
+            <Star className="w-4 h-4 shrink-0" />
+            Recenze: <span className="font-bold">{monthSummary.totalReviews}</span>
+          </div>
+          <div className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 rounded-xl text-emerald-700 text-sm font-medium">
+            <Coins className="w-4 h-4 shrink-0" />
+            Dýško: <span className="font-bold">{formatCurrency(monthSummary.totalTips)}</span>
           </div>
         </div>
       )}

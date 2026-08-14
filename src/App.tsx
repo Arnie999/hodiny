@@ -69,7 +69,7 @@ function MainApp() {
       <div className="min-h-screen bg-amber-50/30 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-amber-500 mx-auto mb-4" />
-          <p className="text-neutral-600">Načítám...</p>
+          <p className="text-neutral-600">Načítám…</p>
         </div>
       </div>
     )
@@ -161,7 +161,7 @@ function MainApp() {
 
       <footer className="bg-white border-t border-neutral-200 mt-16">
         <div className="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-neutral-600">
-          <p>Hodiny Tracker &copy; {new Date().getFullYear()}</p>
+          <p>&copy; {new Date().getFullYear()} Hodiny</p>
         </div>
       </footer>
 

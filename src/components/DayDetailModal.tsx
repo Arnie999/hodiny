@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { cs } from 'date-fns/locale'
-import { Clock, X, Plus, Save, Wine, Minus } from 'lucide-react'
+import { Clock, X, Plus, Save, Wine, Minus, Star, Coins } from 'lucide-react'
 import type { WorkDay, TimeEntry, EntryType } from '../types'
-import { calculateWorkDay, formatMinutes, generateEntryId } from '../utils'
+import { calculateWorkDay, formatCurrency, formatMinutes, generateEntryId } from '../utils'
 import { EntryList } from './EntryList'
 
 interface Props {
@@ -18,6 +18,8 @@ interface Props {
 export function DayDetailModal({ date, workDay, isOpen, onClose, onSave, userId }: Props) {
   const [entries, setEntries] = useState<TimeEntry[]>([])
   const [drinkCount, setDrinkCount] = useState(0)
+  const [reviewCount, setReviewCount] = useState(0)
+  const [tipAmount, setTipAmount] = useState(0)
   const [saving, setSaving] = useState(false)
   const [newType, setNewType] = useState<EntryType>('clock_in')
   const [newTime, setNewTime] = useState('08:00')
@@ -26,14 +28,16 @@ export function DayDetailModal({ date, workDay, isOpen, onClose, onSave, userId 
     if (isOpen) {
       setEntries(workDay?.entries ?? [])
       setDrinkCount(workDay?.drinkCount ?? 0)
+      setReviewCount(workDay?.reviewCount ?? 0)
+      setTipAmount(workDay?.tipAmount ?? 0)
     }
   }, [isOpen, workDay])
 
   if (!isOpen) return null
 
   const summary =
-    entries.length > 0 || drinkCount > 0
-      ? calculateWorkDay({ id: '', userId: '', entries, drinkCount })
+    entries.length > 0 || drinkCount > 0 || reviewCount > 0 || tipAmount > 0
+      ? calculateWorkDay({ id: '', userId: '', entries, drinkCount, reviewCount, tipAmount })
       : null
   const dateId = format(date, 'yyyy-MM-dd')
 
@@ -51,7 +55,16 @@ export function DayDetailModal({ date, workDay, isOpen, onClose, onSave, userId 
   const handleSave = async () => {
     setSaving(true)
     try {
-      await onSave({ id: dateId, userId, entries, drinkCount })
+      const baseWorkDay = workDay ?? { id: dateId, userId, entries: [] }
+      await onSave({
+        ...baseWorkDay,
+        id: dateId,
+        userId,
+        entries,
+        drinkCount: Math.max(0, Math.floor(drinkCount)),
+        reviewCount: Math.max(0, Math.floor(reviewCount)),
+        tipAmount: Math.max(0, Math.round(tipAmount * 100) / 100),
+      })
       onClose()
     } finally {
       setSaving(false)
@@ -77,13 +90,13 @@ export function DayDetailModal({ date, workDay, isOpen, onClose, onSave, userId 
         </div>
 
         <div className="p-4 overflow-y-auto max-h-[60vh]">
-          {summary && (summary.totalWorkMinutes > 0 || summary.drinkCount > 0) && (
+          {summary && (
             <div className="bg-amber-50 rounded-xl p-4 mb-4">
               <div className="flex items-center gap-2 mb-2">
                 <Clock className="w-5 h-5 text-amber-600" />
                 <span className="font-medium text-amber-800">Souhrn</span>
               </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 <div>
                   <span className="text-neutral-600">Odpracováno:</span>
                   <span className="ml-2 font-bold text-neutral-800">
@@ -97,9 +110,21 @@ export function DayDetailModal({ date, workDay, isOpen, onClose, onSave, userId 
                   </span>
                 </div>
                 <div>
-                  <span className="text-neutral-600">Drinky:</span>
+                  <span className="text-neutral-600">Likéry Maria:</span>
                   <span className="ml-2 font-bold text-neutral-800">
                     {summary.drinkCount} ks
+                  </span>
+                </div>
+                <div>
+                  <span className="text-neutral-600">Recenze:</span>
+                  <span className="ml-2 font-bold text-neutral-800">
+                    {summary.reviewCount}
+                  </span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-neutral-600">Dýško:</span>
+                  <span className="ml-2 font-bold text-neutral-800">
+                    {formatCurrency(summary.tipAmount)}
                   </span>
                 </div>
               </div>
@@ -111,31 +136,98 @@ export function DayDetailModal({ date, workDay, isOpen, onClose, onSave, userId 
           <div className="mt-6 p-4 bg-rose-50 rounded-xl">
             <div className="flex items-center gap-2 mb-3">
               <Wine className="w-5 h-5 text-rose-600" />
-              <h4 className="font-medium text-neutral-800">Prodej Maria drinků</h4>
+              <h4 className="font-medium text-neutral-800">Prodej a hodnocení</h4>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setDrinkCount((c) => Math.max(0, c - 1))}
-                className="p-2 bg-white border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors"
-                title="Odebrat"
-              >
-                <Minus className="w-4 h-4" />
-              </button>
-              <input
-                type="number"
-                min={0}
-                value={drinkCount}
-                onChange={(e) => setDrinkCount(Math.max(0, Number(e.target.value) || 0))}
-                className="w-20 text-center px-3 py-2 rounded-lg border border-neutral-200 bg-white font-bold text-lg"
-              />
-              <button
-                onClick={() => setDrinkCount((c) => c + 1)}
-                className="p-2 bg-white border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors"
-                title="Přidat"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-              <span className="text-sm text-neutral-500">ks</span>
+            <div className="space-y-4">
+              <div className="grid gap-2 sm:grid-cols-[8rem_1fr] sm:items-center">
+                <div className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+                  <Wine className="w-4 h-4 text-rose-600" />
+                  Likéry Maria
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setDrinkCount((count) => Math.max(0, count - 1))}
+                    className="p-2 bg-white border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors"
+                    title="Odebrat jeden likér"
+                    aria-label="Odebrat jeden likér Maria"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={drinkCount}
+                    onChange={(e) => setDrinkCount(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+                    className="w-20 text-center px-3 py-2 rounded-lg border border-neutral-200 bg-white font-bold text-lg"
+                    aria-label="Počet prodaných likérů Maria"
+                  />
+                  <button
+                    onClick={() => setDrinkCount((count) => count + 1)}
+                    className="p-2 bg-white border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors"
+                    title="Přidat jeden likér"
+                    aria-label="Přidat jeden likér Maria"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                  <span className="text-sm text-neutral-500">ks</span>
+                </div>
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-[8rem_1fr] sm:items-center">
+                <div className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+                  <Star className="w-4 h-4 text-amber-500" />
+                  Recenze
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setReviewCount((count) => Math.max(0, count - 1))}
+                    className="p-2 bg-white border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors"
+                    title="Odebrat jednu recenzi"
+                    aria-label="Odebrat jednu recenzi"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={reviewCount}
+                    onChange={(e) => setReviewCount(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+                    className="w-20 text-center px-3 py-2 rounded-lg border border-neutral-200 bg-white font-bold text-lg"
+                    aria-label="Počet recenzí"
+                  />
+                  <button
+                    onClick={() => setReviewCount((count) => count + 1)}
+                    className="p-2 bg-white border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors"
+                    title="Přidat jednu recenzi"
+                    aria-label="Přidat jednu recenzi"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                  <span className="text-sm text-neutral-500">ks</span>
+                </div>
+              </div>
+
+              <label className="grid gap-2 sm:grid-cols-[8rem_1fr] sm:items-center">
+                <span className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+                  <Coins className="w-4 h-4 text-emerald-600" />
+                  Dýško
+                </span>
+                <span className="relative w-32">
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    inputMode="decimal"
+                    value={tipAmount}
+                    onChange={(e) => setTipAmount(Math.max(0, Number(e.target.value) || 0))}
+                    className="w-full py-2 pl-3 pr-10 rounded-lg border border-neutral-200 bg-white font-bold text-lg"
+                    aria-label="Dýško v korunách"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500">Kč</span>
+                </span>
+              </label>
             </div>
           </div>
 
@@ -182,7 +274,7 @@ export function DayDetailModal({ date, workDay, isOpen, onClose, onSave, userId 
             className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
           >
             {saving ? (
-              'Ukládám...'
+              'Ukládám…'
             ) : (
               <>
                 <Save className="w-4 h-4" />

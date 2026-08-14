@@ -27,7 +27,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
             <h1 className="text-2xl font-bold text-red-600 mb-4">Něco se pokazilo</h1>
             <p className="text-neutral-600 mb-4">
-              Aplikace spadla při načítání. Prosím pošli mi tuto chybu:
+              V aplikaci došlo při načítání k chybě. Pošli mi prosím následující chybovou zprávu:
             </p>
             <pre className="bg-neutral-100 rounded-lg p-4 text-sm text-left overflow-auto max-h-48 text-neutral-800">
               {this.state.error?.message ?? 'Neznámá chyba'}

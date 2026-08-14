@@ -5,14 +5,14 @@ import { formatMinutes } from '../utils'
 const statusConfig = {
   not_working: {
     label: 'Nepracuješ',
-    sublabel: 'Klikni pro příchod',
+    sublabel: 'Klikni na tlačítko Příchod',
     icon: CircleOff,
     bgColor: 'bg-neutral-100',
     textColor: 'text-neutral-600',
   },
   working: {
     label: 'Pracuješ',
-    sublabel: 'Čas běží...',
+    sublabel: 'Čas běží…',
     icon: Clock,
     bgColor: 'bg-green-50',
     textColor: 'text-green-700',
@@ -53,7 +53,7 @@ export function StatusCard({ status, workMinutes, breakMinutes }: Props) {
           <div className="text-2xl font-bold text-neutral-800">{formatMinutes(workMinutes)}</div>
           {breakMinutes > 0 && (
             <div className="text-sm text-amber-600">
-              + {formatMinutes(breakMinutes)} přestávka
+              Přestávky: {formatMinutes(breakMinutes)}
             </div>
           )}
         </div>
