@@ -14,6 +14,14 @@ import { db } from '../firebase'
 import type { WorkDay, WorkDayFirestore, TimeEntry } from '../types'
 import { formatDateId } from '../utils'
 
+function nonNegativeNumber(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0
+}
+
+function nonNegativeInteger(value: unknown): number {
+  return Math.floor(nonNegativeNumber(value))
+}
+
 function fromFirestore(data: WorkDayFirestore): WorkDay {
   return {
     ...data,
@@ -21,7 +29,9 @@ function fromFirestore(data: WorkDayFirestore): WorkDay {
       ...e,
       timestamp: new Date(e.timestamp),
     })),
-    drinkCount: data.drinkCount ?? 0,
+    drinkCount: nonNegativeInteger(data.drinkCount),
+    reviewCount: nonNegativeInteger(data.reviewCount),
+    tipAmount: nonNegativeNumber(data.tipAmount),
   }
 }
 
@@ -33,7 +43,9 @@ function toFirestore(workDay: WorkDay): WorkDayFirestore {
       ...e,
       timestamp: e.timestamp.toISOString(),
     })),
-    drinkCount: workDay.drinkCount ?? 0,
+    drinkCount: nonNegativeInteger(workDay.drinkCount),
+    reviewCount: nonNegativeInteger(workDay.reviewCount),
+    tipAmount: nonNegativeNumber(workDay.tipAmount),
     ...(workDay.manualOverride ? { manualOverride: workDay.manualOverride } : {}),
   }
 }
@@ -76,7 +88,7 @@ export function useSaveWorkDay(userId: string | undefined) {
 
   return useMutation({
     mutationFn: async (workDay: WorkDay) => {
-      if (!userId) throw new Error('User not authenticated')
+      if (!userId) throw new Error('Uživatel není přihlášen.')
       const docRef = doc(db, 'users', userId, 'workDays', workDay.id)
       await setDoc(docRef, toFirestore(workDay))
       return workDay
@@ -99,7 +111,14 @@ export function useTodayWorkDay(userId: string | undefined) {
     const existing = dayQuery.data
     const workDay: WorkDay = existing
       ? { ...existing, entries: [...existing.entries, entry] }
-      : { id: dateId, userId: userId!, entries: [entry], drinkCount: 0 }
+      : {
+          id: dateId,
+          userId: userId!,
+          entries: [entry],
+          drinkCount: 0,
+          reviewCount: 0,
+          tipAmount: 0,
+        }
     await saveMutation.mutateAsync(workDay)
   }
 

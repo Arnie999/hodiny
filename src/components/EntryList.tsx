@@ -35,7 +35,7 @@ export function EntryList({ entries, onDeleteEntry, showDelete = false }: Props)
 
   return (
     <div className="space-y-2">
-      <h3 className="text-lg font-semibold text-neutral-800 mb-4">Dnešní záznamy</h3>
+      <h3 className="text-lg font-semibold text-neutral-800 mb-4">Záznamy</h3>
       <div className="relative">
         <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-neutral-200" />
         <div className="space-y-3">

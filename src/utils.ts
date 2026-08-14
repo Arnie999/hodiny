@@ -63,6 +63,8 @@ function isComplete(entries: TimeEntry[]): boolean {
 
 export function calculateWorkDay(workDay: WorkDay): WorkDaySummary {
   const drinkCount = workDay.drinkCount ?? 0
+  const reviewCount = workDay.reviewCount ?? 0
+  const tipAmount = workDay.tipAmount ?? 0
   if (workDay.manualOverride) {
     return {
       totalWorkMinutes: workDay.manualOverride.totalMinutes,
@@ -70,6 +72,8 @@ export function calculateWorkDay(workDay: WorkDay): WorkDaySummary {
       netWorkMinutes: workDay.manualOverride.totalMinutes,
       isComplete: true,
       drinkCount,
+      reviewCount,
+      tipAmount,
     }
   }
   const work = getWorkMinutes(workDay.entries)
@@ -80,6 +84,8 @@ export function calculateWorkDay(workDay: WorkDay): WorkDaySummary {
     netWorkMinutes: work,
     isComplete: isComplete(workDay.entries),
     drinkCount,
+    reviewCount,
+    tipAmount,
   }
 }
 
@@ -88,9 +94,13 @@ export function calculateMonthSummary(workDays: WorkDay[]): MonthSummary {
   let totalBreaks = 0
   let daysWorked = 0
   let totalDrinks = 0
+  let totalReviews = 0
+  let totalTips = 0
   for (const wd of workDays) {
     const s = calculateWorkDay(wd)
     totalDrinks += s.drinkCount
+    totalReviews += s.reviewCount
+    totalTips += s.tipAmount
     if (s.totalWorkMinutes > 0) {
       totalWork += s.netWorkMinutes
       totalBreaks += s.totalBreakMinutes
@@ -104,19 +114,30 @@ export function calculateMonthSummary(workDays: WorkDay[]): MonthSummary {
     daysWorked,
     averageMinutesPerDay: daysWorked > 0 ? Math.round(totalWork / daysWorked) : 0,
     totalDrinks,
+    totalReviews,
+    totalTips,
   }
 }
 
 export function formatMinutes(minutes: number): string {
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
-  if (h === 0) return `${m}m`
-  if (m === 0) return `${h}h`
-  return `${h}h ${m}m`
+  if (h === 0) return `${m} min`
+  if (m === 0) return `${h} h`
+  return `${h} h ${m} min`
 }
 
 export function formatHours(minutes: number): string {
   return `${(minutes / 60).toFixed(1).replace('.', ',')} hod.`
+}
+
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('cs-CZ', {
+    style: 'currency',
+    currency: 'CZK',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(amount)
 }
 
 export function generateEntryId(): string {
@@ -128,7 +149,7 @@ export function isSunday(date: Date): boolean {
 }
 
 export function formatDate(date: Date): string {
-  return format(date, 'dd.MM.yyyy', { locale: cs })
+  return format(date, 'dd. MM. yyyy', { locale: cs })
 }
 
 export function formatDateId(date: Date): string {

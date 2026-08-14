@@ -5,11 +5,37 @@ import { z } from 'zod'
 import { Clock, Mail, Lock, LogIn, Loader2, UserPlus } from 'lucide-react'
 
 const loginSchema = z.object({
-  email: z.string().email('Neplatný email'),
+  email: z.string().email('Neplatná e-mailová adresa'),
   password: z.string().min(6, 'Heslo musí mít alespoň 6 znaků'),
 })
 
 type LoginForm = z.infer<typeof loginSchema>
+
+function getAuthErrorMessage(error: Error): string {
+  const code = (error as Error & { code?: string }).code
+  switch (code) {
+    case 'auth/invalid-credential':
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+      return 'Nesprávný e-mail nebo heslo.'
+    case 'auth/email-already-in-use':
+      return 'Pro tuto e-mailovou adresu už účet existuje.'
+    case 'auth/invalid-email':
+      return 'E-mailová adresa není platná.'
+    case 'auth/weak-password':
+      return 'Heslo je příliš slabé. Použij alespoň 6 znaků.'
+    case 'auth/network-request-failed':
+      return 'Připojení se nezdařilo. Zkontroluj internet a zkus to znovu.'
+    case 'auth/too-many-requests':
+      return 'Proběhlo příliš mnoho pokusů. Zkus to prosím později.'
+    case 'auth/popup-blocked':
+      return 'Prohlížeč zablokoval přihlašovací okno. Povol vyskakovací okna a zkus to znovu.'
+    case 'auth/operation-not-allowed':
+      return 'Tento způsob přihlášení není povolený.'
+    default:
+      return 'Přihlášení se nezdařilo. Zkus to prosím znovu.'
+  }
+}
 
 interface Props {
   onSignIn: () => void
@@ -44,7 +70,7 @@ export function LoginPage({ onSignIn, isSigningIn, error, onEmailSignIn, onEmail
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-            {error.message}
+            {getAuthErrorMessage(error)}
           </div>
         )}
 
@@ -83,7 +109,7 @@ export function LoginPage({ onSignIn, isSigningIn, error, onEmailSignIn, onEmail
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 text-left">
           <div>
-            <label className="text-sm text-neutral-600">Email</label>
+            <label className="text-sm text-neutral-600">E-mail</label>
             <div className="relative">
               <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
               <input
@@ -112,6 +138,7 @@ export function LoginPage({ onSignIn, isSigningIn, error, onEmailSignIn, onEmail
 
           <button
             type="submit"
+            disabled={isSigningIn}
             className="w-full px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
           >
             {mode === 'signin' ? (
@@ -136,7 +163,7 @@ export function LoginPage({ onSignIn, isSigningIn, error, onEmailSignIn, onEmail
         </button>
 
         <p className="mt-6 text-xs text-neutral-500">
-          Přihlášením se synchronizují data mezi všemi tvými zařízeními
+          Přihlášením se synchronizují data mezi všemi tvými zařízeními.
         </p>
       </div>
     </div>

@@ -11,6 +11,8 @@ export interface WorkDay {
   userId: string
   entries: TimeEntry[]
   drinkCount?: number
+  reviewCount?: number
+  tipAmount?: number
   manualOverride?: {
     totalMinutes: number
   }
@@ -25,6 +27,8 @@ export interface WorkDayFirestore {
     type: EntryType
   }[]
   drinkCount?: number
+  reviewCount?: number
+  tipAmount?: number
   manualOverride?: {
     totalMinutes: number
   }
@@ -36,6 +40,8 @@ export interface WorkDaySummary {
   netWorkMinutes: number
   isComplete: boolean
   drinkCount: number
+  reviewCount: number
+  tipAmount: number
 }
 
 export interface MonthSummary {
@@ -45,6 +51,8 @@ export interface MonthSummary {
   daysWorked: number
   averageMinutesPerDay: number
   totalDrinks: number
+  totalReviews: number
+  totalTips: number
 }
 
 export type WorkStatus = 'not_working' | 'working' | 'on_break'
